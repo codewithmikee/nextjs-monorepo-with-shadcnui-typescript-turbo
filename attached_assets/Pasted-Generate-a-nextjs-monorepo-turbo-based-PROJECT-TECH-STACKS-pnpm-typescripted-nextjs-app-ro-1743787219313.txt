@@ -1,0 +1,112 @@
+Generate a nextjs monorepo turbo based
+
+# PROJECT TECH STACKS
+- pnpm 
+- typescripted
+- nextjs app router 
+- shadcnui and tailwindcss for ui
+- zustand for store 
+- next-auth for authentication (credientials)
+- react-query for data fetching
+- react-hook-form for form management
+- zod for validation
+
+# features to include
+- next-auth configurations setup : credientials, with expire time (like 1 hour) you can use any external api endpoint for authentication test 
+- all available shadcnui components
+- sample reusable ui components like table, form, modal, button, input, etc
+- sample zustand store
+- sample react-query setup
+- sample react-hook-form setup with zod validation
+- api configurations for external api calls : 
+    - server and client side 
+    - authed and unauthed calls 
+    - (WELL REUSABLE, EXTENDABLE, TYPISCRIPTED AND CONFIGURABLE, )
+    - well structured response handling including errors like zod format
+- pagination, sorting, filtering, etc
+- already implemented available on websites from other developers like hooks, utils, libs
+
+# RECOMENDED FOLDER STRUCTURE
+root
+    - apps/
+        # for standalone nextjs apps
+    - configs/
+        # for shared configs
+    - shared/
+        # for any common codes that can BE shared across frontend (this repo) and backend (another repo) eg. shared types, response formats, utils, etc
+        - src/
+            index.ts 
+        - ... folder configurations 
+    - packages/
+        # for shared and reusable codes like ui, utils, libs,types 
+        # only those considered to be shared across apps and can be used on any of nextjs apps
+        - src/
+            - index.ts # main export files
+            - types/ # For shared types 
+                - index.ts # main export files
+                ... folders and files 
+            - utils/ # For shared utils
+                - index.ts # main export files
+                ... folders and files
+            - libs/ # For shared libraries
+                - index.ts # main export files
+                - api-configurations ## For shared api configurations
+                    - index.ts # main export files
+                ... folders and files
+            - ui/ # For shared UI components
+                - index.ts # main export files
+                - ui-elements/ # For shadcnui specific components
+                    - index.ts # main export files
+                    ... folders and files
+                ... folders and files
+            - stores/ # For shared stores
+                - index.ts # main export files
+                ... folders and files
+            - hooks/ # For shared hooks
+                - index.ts # main export files
+                ... folders and files
+            - constants/ # For shared constants
+                - index.ts # main export files
+                ... folders and files
+            - auth/ # For next auth related codes
+                - index.ts # main export files
+                ... folders and files
+            
+        - ... configurations of packages folder 
+
+# TYPES OF FOLDERS
+1. apps 
+    - for standalone nextjs apps
+    - each app can have its own configurations and packages  
+    - each app can have its own configs folder for shared configs across the app only
+    - each app can be deployed/run independently 
+    - app router with source folder
+    - the first app needs to be a show room for packages and shared codes usage
+2. configs
+    - for shared configs across all apps 
+3. reusable folders 
+    - for shared and reusable folders that will be used in apps 
+    - eg. packages and shared folder 
+    - each folder should have its own one configurations and src folder to codes 
+    - each folder should have its own index.ts file for main export files
+    - each folder should be available to apps using '@reusable_folder_name/folder_name' where folder name is the main folder under src folder. eg. 
+        - '@packages/ui' : for ui folder is packages/src/ui, and anything under src/ui should be available
+        - don't consider main folders as standalone packages instead they are part of the package and it is just for easy reference
+    - between folders of same source folder '@/folder_name' should work. eg. '@/ui' should work for any folder under src/ of packages/src
+
+
+# REUSABLITY AND CONFIGURATIONS
+1. needs to be easy to add new apps or duplicate existing apps
+2. needs to be easy to add reusable folders like shared and packages and needs to be available to all apps or other reusable folders
+3. Deployment strategy should be clear 
+4. Consistency of npm package versions across apps and reusable folders
+5. Consistency of folder structure across apps and reusable folders
+
+# MUST INCLUDE
+1. Detailed comments on each files with author name "Mikiyas Birhanu And AI" and each standalone implementation should be commented
+2. Detailed README file with all the configurations and how to use the repo
+3. Detailed instruction readmes for adding new apps and reusable folders
+4. Detailed instruction readmes for deployments specific to each app
+
+
+
