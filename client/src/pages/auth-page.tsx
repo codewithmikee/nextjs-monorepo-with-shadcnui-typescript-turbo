@@ -1,74 +1,69 @@
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import React, { useState } from 'react';
 import { z } from 'zod';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Redirect } from 'wouter';
-import { useAuth } from '@/hooks/use-auth';
-import { useToast } from '@/hooks/use-toast';
 
-// Define the validation schemas
 const loginSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  username: z.string().min(3, 'Username must be at least 3 characters'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
 const registerSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  displayName: z.string().optional(),
+  username: z.string().min(3, 'Username must be at least 3 characters'),
+  email: z.string().email('Please enter a valid email'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  confirmPassword: z.string().min(6, 'Password must be at least 6 characters'),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
-  const [isLogin, setIsLogin] = useState(true);
-  const { user } = useAuth();
-
-  // Redirect if already logged in
-  if (user) {
-    return <Redirect to="/" />;
-  }
-
-  const toggleForm = () => {
-    setIsLogin(!isLogin);
-  };
+  const [isLoginForm, setIsLoginForm] = useState(true);
 
   return (
-    <div className="min-h-screen flex">
-      {/* Form Section */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-12 bg-white">
-        <div className="w-full max-w-md">
-          <h1 className="text-3xl font-bold mb-6 text-gray-900">
-            {isLogin ? 'Welcome Back' : 'Create an Account'}
-          </h1>
-          
-          {isLogin ? (
-            <LoginForm onToggle={toggleForm} />
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900">
+      <div className="max-w-4xl w-full rounded-lg shadow-md overflow-hidden flex">
+        <div className="w-full sm:w-1/2 bg-white dark:bg-gray-800 p-8">
+          <div className="mb-6 text-center">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              {isLoginForm ? 'Login' : 'Create an Account'}
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">
+              {isLoginForm ? 'Welcome back!' : 'Join our community today'}
+            </p>
+          </div>
+          {isLoginForm ? (
+            <LoginForm onToggle={() => setIsLoginForm(false)} />
           ) : (
-            <RegisterForm onToggle={toggleForm} />
+            <RegisterForm onToggle={() => setIsLoginForm(true)} />
           )}
         </div>
-      </div>
-      
-      {/* Hero Section */}
-      <div className="hidden lg:flex lg:w-1/2 bg-blue-600 p-12 items-center justify-center">
-        <div className="text-center text-white">
-          <h2 className="text-4xl font-bold mb-6">Start Your Journey</h2>
-          <p className="text-xl mb-8">
-            A powerful application built with modern web technologies to help you achieve your goals.
-          </p>
-          <div className="flex flex-col gap-4 items-center">
-            <div className="bg-white/10 p-4 rounded-lg">
-              <span className="text-lg font-medium">Secure Authentication</span>
-            </div>
-            <div className="bg-white/10 p-4 rounded-lg">
-              <span className="text-lg font-medium">User-friendly Interface</span>
-            </div>
-            <div className="bg-white/10 p-4 rounded-lg">
-              <span className="text-lg font-medium">Responsive Design</span>
-            </div>
+        
+        <div className="hidden sm:block sm:w-1/2 bg-blue-600 p-8 text-white">
+          <div className="flex flex-col h-full justify-center">
+            <h2 className="text-3xl font-bold mb-4">Welcome to Our Platform</h2>
+            <p className="mb-6">
+              Access all features and connect with other members. Our platform provides
+              everything you need for a seamless experience.
+            </p>
+            <ul className="space-y-2">
+              <li className="flex items-center">
+                <span className="mr-2">✓</span>
+                <span>Feature 1: Lorem ipsum dolor sit amet</span>
+              </li>
+              <li className="flex items-center">
+                <span className="mr-2">✓</span>
+                <span>Feature 2: Consectetur adipiscing elit</span>
+              </li>
+              <li className="flex items-center">
+                <span className="mr-2">✓</span>
+                <span>Feature 3: Sed do eiusmod tempor</span>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
@@ -77,43 +72,26 @@ export default function AuthPage() {
 }
 
 function LoginForm({ onToggle }: { onToggle: () => void }) {
-  const { loginMutation } = useAuth();
-  const { toast } = useToast();
-  
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
   });
   
   const onSubmit = (data: LoginFormValues) => {
-    loginMutation.mutate(data, {
-      onSuccess: () => {
-        toast({
-          title: 'Logged in successfully',
-          variant: 'success',
-        });
-      },
-      onError: (error) => {
-        toast({
-          title: 'Login failed',
-          description: error.message || 'Please check your credentials',
-          variant: 'destructive',
-        });
-      },
-    });
+    console.log('Login form submitted:', data);
+    // TODO: Implement login logic
   };
   
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div>
-        <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Username
         </label>
         <input
           id="username"
           type="text"
-          {...register("username")}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Enter your username"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+          {...register('username')}
         />
         {errors.username && (
           <p className="mt-1 text-sm text-red-600">{errors.username.message}</p>
@@ -121,15 +99,14 @@ function LoginForm({ onToggle }: { onToggle: () => void }) {
       </div>
       
       <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Password
         </label>
         <input
           id="password"
           type="password"
-          {...register("password")}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Enter your password"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+          {...register('password')}
         />
         {errors.password && (
           <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
@@ -138,64 +115,48 @@ function LoginForm({ onToggle }: { onToggle: () => void }) {
       
       <button
         type="submit"
-        disabled={loginMutation.isPending}
-        className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
       >
-        {loginMutation.isPending ? 'Logging in...' : 'Login'}
+        Login
       </button>
       
-      <p className="text-center text-sm text-gray-600 mt-4">
-        Don't have an account?{' '}
-        <button
-          type="button"
-          onClick={onToggle}
-          className="text-blue-600 hover:text-blue-800 font-medium"
-        >
-          Sign up
-        </button>
-      </p>
+      <div className="text-center mt-4">
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Don't have an account?{' '}
+          <button
+            type="button"
+            onClick={onToggle}
+            className="text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+          >
+            Register
+          </button>
+        </p>
+      </div>
     </form>
   );
 }
 
 function RegisterForm({ onToggle }: { onToggle: () => void }) {
-  const { registerMutation } = useAuth();
-  const { toast } = useToast();
-  
   const { register, handleSubmit, formState: { errors } } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
   });
   
   const onSubmit = (data: RegisterFormValues) => {
-    registerMutation.mutate(data, {
-      onSuccess: () => {
-        toast({
-          title: 'Account created successfully',
-          variant: 'success',
-        });
-      },
-      onError: (error) => {
-        toast({
-          title: 'Registration failed',
-          description: error.message || 'Please try again with different credentials',
-          variant: 'destructive',
-        });
-      },
-    });
+    console.log('Register form submitted:', data);
+    // TODO: Implement registration logic
   };
   
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div>
-        <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Username
         </label>
         <input
           id="username"
           type="text"
-          {...register("username")}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Choose a username"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+          {...register('username')}
         />
         {errors.username && (
           <p className="mt-1 text-sm text-red-600">{errors.username.message}</p>
@@ -203,15 +164,14 @@ function RegisterForm({ onToggle }: { onToggle: () => void }) {
       </div>
       
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Email
         </label>
         <input
           id="email"
           type="email"
-          {...register("email")}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Enter your email"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+          {...register('email')}
         />
         {errors.email && (
           <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
@@ -219,55 +179,54 @@ function RegisterForm({ onToggle }: { onToggle: () => void }) {
       </div>
       
       <div>
-        <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 mb-1">
-          Display Name (optional)
-        </label>
-        <input
-          id="displayName"
-          type="text"
-          {...register("displayName")}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Enter your display name"
-        />
-        {errors.displayName && (
-          <p className="mt-1 text-sm text-red-600">{errors.displayName.message}</p>
-        )}
-      </div>
-      
-      <div>
-        <label htmlFor="register-password" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Password
         </label>
         <input
-          id="register-password"
+          id="password"
           type="password"
-          {...register("password")}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Create a password"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+          {...register('password')}
         />
         {errors.password && (
           <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
         )}
       </div>
       
+      <div>
+        <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          Confirm Password
+        </label>
+        <input
+          id="confirmPassword"
+          type="password"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+          {...register('confirmPassword')}
+        />
+        {errors.confirmPassword && (
+          <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
+        )}
+      </div>
+      
       <button
         type="submit"
-        disabled={registerMutation.isPending}
-        className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
       >
-        {registerMutation.isPending ? 'Creating account...' : 'Sign up'}
+        Register
       </button>
       
-      <p className="text-center text-sm text-gray-600 mt-4">
-        Already have an account?{' '}
-        <button
-          type="button"
-          onClick={onToggle}
-          className="text-blue-600 hover:text-blue-800 font-medium"
-        >
-          Login
-        </button>
-      </p>
+      <div className="text-center mt-4">
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Already have an account?{' '}
+          <button
+            type="button"
+            onClick={onToggle}
+            className="text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+          >
+            Login
+          </button>
+        </p>
+      </div>
     </form>
   );
 }

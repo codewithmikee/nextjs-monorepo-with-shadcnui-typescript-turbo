@@ -1,6 +1,7 @@
-import { createContext, ReactNode, useContext, useState } from "react";
+import { createContext, ReactNode, useState, useContext, useCallback } from 'react';
+import { X } from 'lucide-react';
 
-type ToastVariant = "default" | "destructive" | "success" | "warning";
+type ToastVariant = 'default' | 'destructive' | 'success' | 'warning';
 
 type ToastType = {
   id: string;
@@ -12,7 +13,7 @@ type ToastType = {
 
 type ToastContextType = {
   toasts: ToastType[];
-  toast: (props: Omit<ToastType, "id">) => void;
+  toast: (props: Omit<ToastType, 'id'>) => void;
   removeToast: (id: string) => void;
 };
 
@@ -21,25 +22,30 @@ const ToastContext = createContext<ToastContextType | null>(null);
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastType[]>([]);
 
-  const toast = ({
-    title,
-    description,
-    variant = "default",
-    duration = 5000,
-  }: Omit<ToastType, "id">) => {
-    const id = Math.random().toString(36).slice(2, 11);
-    setToasts((prev) => [...prev, { id, title, description, variant, duration }]);
+  const toast = useCallback(
+    ({ title, description, variant = 'default', duration = 5000 }: Omit<ToastType, 'id'>) => {
+      const id = Math.random().toString(36).substring(2, 9);
+      const newToast: ToastType = {
+        id,
+        title,
+        description,
+        variant,
+        duration,
+      };
+      setToasts((prevToasts) => [...prevToasts, newToast]);
 
-    if (duration !== Infinity) {
-      setTimeout(() => {
-        removeToast(id);
-      }, duration);
-    }
-  };
+      if (duration > 0) {
+        setTimeout(() => {
+          removeToast(id);
+        }, duration);
+      }
+    },
+    []
+  );
 
-  const removeToast = (id: string) => {
-    setToasts((prev) => prev.filter((toast) => toast.id !== id));
-  };
+  const removeToast = useCallback((id: string) => {
+    setToasts((prevToasts) => prevToasts.filter((toast) => toast.id !== id));
+  }, []);
 
   return (
     <ToastContext.Provider value={{ toasts, toast, removeToast }}>
@@ -51,55 +57,56 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
 function ToastContainer() {
   const context = useContext(ToastContext);
-  if (!context) throw new Error("useToast must be used within a ToastProvider");
+  if (!context) return null;
+
   const { toasts, removeToast } = context;
 
-  if (!toasts.length) return null;
+  if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-0 right-0 p-4 space-y-4 z-50">
+    <div className="fixed bottom-0 right-0 z-50 p-4 space-y-4 w-full max-w-sm">
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className={`p-4 rounded-md shadow-md transition-all transform duration-300 ease-in-out ${
-            getVariantClasses(toast.variant)
-          }`}
+          className={`p-4 rounded-lg shadow-lg flex items-start space-x-3 ${getVariantClasses(
+            toast.variant
+          )}`}
+          role="alert"
         >
-          <div className="flex justify-between items-start">
-            <div>
-              <h3 className="font-medium">{toast.title}</h3>
-              {toast.description && <p className="text-sm mt-1">{toast.description}</p>}
-            </div>
-            <button
-              onClick={() => removeToast(toast.id)}
-              className="ml-4 text-gray-500 hover:text-gray-700"
-            >
-              ×
-            </button>
+          <div className="flex-1 space-y-1">
+            <h3 className="font-medium">{toast.title}</h3>
+            {toast.description && <p className="text-sm opacity-90">{toast.description}</p>}
           </div>
+          <button
+            onClick={() => removeToast(toast.id)}
+            className="shrink-0 h-5 w-5 rounded-full flex items-center justify-center opacity-70 hover:opacity-100 transition-opacity"
+            aria-label="Close toast"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
       ))}
     </div>
   );
 }
 
-function getVariantClasses(variant: ToastVariant = "default") {
+function getVariantClasses(variant: ToastVariant = 'default') {
   switch (variant) {
-    case "destructive":
-      return "bg-red-100 text-red-800 border border-red-200";
-    case "success":
-      return "bg-green-100 text-green-800 border border-green-200";
-    case "warning":
-      return "bg-yellow-100 text-yellow-800 border border-yellow-200";
+    case 'destructive':
+      return 'bg-red-600 text-white';
+    case 'success':
+      return 'bg-green-600 text-white';
+    case 'warning':
+      return 'bg-yellow-500 text-white';
     default:
-      return "bg-white text-gray-800 border border-gray-200";
+      return 'bg-white text-gray-800 border border-gray-200';
   }
 }
 
 export function useToast() {
   const context = useContext(ToastContext);
   if (!context) {
-    throw new Error("useToast must be used within a ToastProvider");
+    throw new Error('useToast must be used within a ToastProvider');
   }
   return context;
 }
