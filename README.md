@@ -1,6 +1,6 @@
 # NextJS Monorepo with Turborepo
 
-This is a NextJS monorepo project built with Turborepo, TypeScript, and various modern frontend technologies.
+This is a NextJS monorepo project built with Turborepo, TypeScript, and various modern frontend technologies, along with a client-server implementation using React with Vite, Express, and PostgreSQL.
 
 ## Project Structure
 
@@ -11,18 +11,32 @@ This monorepo is organized with the following structure:
 - `shared/`: Common code that can be shared between frontend and backend
 - `packages/`: Shared and reusable code (UI components, utilities, libraries, etc.)
 - `standalone/`: Simple, independent applications
+- `client/`: Vite-based React client application
+- `server/`: Express backend with PostgreSQL database
 
 ## Tech Stack
 
+### Monorepo Core
 - **Package Manager**: pnpm
-- **Framework**: Next.js (App Router)
+- **Build System**: Turborepo
 - **Language**: TypeScript
+
+### Next.js Applications
+- **Framework**: Next.js (App Router)
 - **UI**: shadcn/ui and Tailwind CSS
 - **State Management**: Zustand
 - **Authentication**: Next-Auth (credentials provider)
 - **Data Fetching**: React Query
 - **Form Management**: React Hook Form
 - **Validation**: Zod
+
+### Client-Server Implementation
+- **Frontend**: React with Vite
+- **Backend**: Express.js with TypeScript
+- **Database**: PostgreSQL with Drizzle ORM
+- **Authentication**: Passport.js with session-based auth
+- **Routing**: wouter (client-side)
+- **State Management**: React Query and Context API
 
 ## Features
 
@@ -34,6 +48,8 @@ This monorepo is organized with the following structure:
 - React Hook Form with Zod validation
 - API configurations for external API calls (server and client-side)
 - Pagination, sorting, and filtering implementation
+- Session-based authentication with PostgreSQL storage
+- Protected routes implementation
 
 ## Getting Started
 
@@ -41,6 +57,7 @@ This monorepo is organized with the following structure:
 
 - Node.js (v18 or later)
 - pnpm (v8 or later)
+- PostgreSQL database
 
 ### Installation
 
@@ -57,73 +74,55 @@ pnpm install
 
 3. Set up environment variables:
 ```bash
-# Create .env.local in the root and in each app directory
-touch apps/showcase/.env.local
+# Create .env file in the root
+touch .env
 ```
 
 Add the following to the env file:
 ```
-# For Next-Auth
-NEXTAUTH_SECRET=your_nextauth_secret
-NEXTAUTH_URL=http://localhost:3000
+# For PostgreSQL connection
+DATABASE_URL=postgresql://username:password@localhost:5432/dbname
+PGUSER=username
+PGPASSWORD=password
+PGDATABASE=dbname
+PGHOST=localhost
+PGPORT=5432
 
-# For API endpoints (optional)
-API_URL=https://your-api-url.com
+# For session management
+SESSION_SECRET=your_session_secret
 ```
 
 ### Development
 
-You can run the different applications in development mode:
+You can run the different applications using the configured workflows:
 
-#### Showcase App
-```bash
-cd apps/showcase
-pnpm dev
+#### Client-Server Implementation
+Start the server workflow:
+```
+# In Replit, use the workflow panel to start the server workflow
 ```
 
-Or from the root:
-```bash
-pnpm --filter="showcase" dev
+Start the client workflow:
 ```
-
-#### Simple App
-```bash
-cd standalone/simple-app
-pnpm dev
-```
-
-Or from the root:
-```bash
-pnpm --filter="simple-app" dev
+# In Replit, use the workflow panel to start the client workflow
 ```
 
 ### Building for Production
 
-To build all applications and packages:
+To build the client for production:
 
 ```bash
-pnpm build
-```
-
-To build a specific app:
-
-```bash
-pnpm --filter="showcase" build
+cd client
+npm run build
+npm run serve
 ```
 
 ## Project Structure Details
 
-### Apps
+### Client-Server
 
-The `apps` directory contains standalone Next.js applications:
-
-- `showcase`: A demo application showcasing the components, hooks, and utilities available in the shared packages.
-
-### Standalone
-
-The `standalone` directory contains simple Next.js applications that can be run independently:
-
-- `simple-app`: A basic Next.js application with Tailwind CSS styling.
+- `client`: A Vite-based React application with authentication and protected routes
+- `server`: An Express.js backend with PostgreSQL database and session-based authentication
 
 ### Packages
 
@@ -141,93 +140,56 @@ The `packages` directory contains shared code that can be used across applicatio
 The `shared` directory contains code that can be shared between frontend and backend:
 
 - `types`: Type definitions
-- `api`: API response and request types
+- `schema`: Database and validation schemas
 
-## Adding a New App
+## Database Management
 
-To add a new Next.js application to the monorepo:
+### Schema Management
 
-1. Create a new directory in the `apps` folder:
+The database schema is managed through Drizzle ORM. The schema is defined in:
+
+```
+shared/schema/index.ts
+```
+
+### Database Migrations
+
+To push schema changes to the database:
+
 ```bash
-mkdir -p apps/my-new-app
+npm run db:push
 ```
-
-2. Initialize a new Next.js app with TypeScript:
-```bash
-cd apps/my-new-app
-pnpm create next-app . --typescript --tailwind --app
-```
-
-3. Update the package.json to include the workspace name:
-```json
-{
-  "name": "my-new-app",
-  "version": "0.1.0",
-  "private": true,
-  ...
-}
-```
-
-4. Configure the app to use shared packages by updating its tsconfig.json:
-```json
-{
-  "extends": "../../configs/tsconfig/nextjs.json",
-  "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./src/*"],
-      "@packages/*": ["../../packages/src/*"],
-      "@shared/*": ["../../shared/src/*"]
-    }
-  },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules"]
-}
-```
-
-5. Update the root turbo.json to include the new app.
 
 ## Deployment
 
-### General Deployment Guidelines
+### Client-Server Deployment
 
-Each app in the monorepo can be deployed independently. The general process is:
+For deploying the client-server implementation:
 
-1. Build the app and its dependencies:
-```bash
-pnpm --filter="my-app..." build
-```
+1. Backend (server):
+   - Build the TypeScript files
+   - Start the server using a process manager
+   - Ensure the PostgreSQL database is configured
 
-2. Deploy the built app according to your deployment platform's requirements.
-
-### Vercel Deployment
-
-For deploying to Vercel:
-
-1. Connect your GitHub repository to Vercel
-2. Configure the project settings:
-   - Root Directory: Select the app directory (e.g., `apps/showcase`)
-   - Framework Preset: Next.js
-   - Build Command: `cd ../.. && pnpm --filter=showcase build`
-   - Output Directory: `.next`
-
-3. Add environment variables in Vercel project settings.
-
-### Netlify Deployment
-
-For deploying to Netlify:
-
-1. Connect your GitHub repository to Netlify
-2. Configure the project settings:
-   - Base directory: The app directory (e.g., `apps/showcase`)
-   - Build command: `cd ../.. && pnpm --filter=showcase build`
-   - Publish directory: `apps/showcase/.next`
-
-3. Add environment variables in Netlify project settings.
+2. Frontend (client):
+   - Build the client: `cd client && npm run build`
+   - Serve using the included Express server: `cd client && npm run serve`
 
 ## Tasks and Progress
 
 See the [tasks.md](./tasks.md) file for a detailed breakdown of completed and pending tasks in this project.
+
+## Known Issues and Troubleshooting
+
+### Client Development Mode
+
+- The SPA routing in development mode may encounter issues with the "Cannot GET /" error
+- Content Security Policy settings need configuration to allow all required resources
+
+### Authentication Flow
+
+- For a complete authentication flow, implement token refresh mechanisms
+- Consider adding JWT support for API-only clients
 
 ## License
 
