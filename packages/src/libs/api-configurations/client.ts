@@ -12,6 +12,13 @@ interface FetchOptions {
   headers?: Record<string, string>;
   credentials?: RequestCredentials;
   timeout?: number;
+  skipAuthRefresh?: boolean;
+}
+
+interface TokenData {
+  accessToken: string;
+  refreshToken?: string;
+  expiresAt?: number; // Unix timestamp in milliseconds
 }
 
 interface ApiClientConfig {
@@ -19,6 +26,8 @@ interface ApiClientConfig {
   defaultHeaders?: Record<string, string>;
   withCredentials?: boolean;
   timeout?: number;
+  authRefreshEndpoint?: string;
+  onAuthError?: (error: any) => void;
 }
 
 /**
@@ -26,6 +35,8 @@ interface ApiClientConfig {
  */
 export class ApiClient {
   private config: ApiClientConfig;
+  private tokenData: TokenData | null = null;
+  private refreshPromise: Promise<TokenData | null> | null = null;
 
   constructor(config: ApiClientConfig) {
     this.config = {
@@ -38,26 +49,112 @@ export class ApiClient {
       },
       withCredentials: config.withCredentials ?? true,
       timeout: config.timeout ?? 30000,
+      authRefreshEndpoint: config.authRefreshEndpoint || '/api/auth/refresh',
+      onAuthError: config.onAuthError,
     };
+  }
+
+  /**
+   * Set authentication token data for subsequent requests
+   */
+  setAuthTokens(tokenData: TokenData): void {
+    this.tokenData = tokenData;
+    
+    if (!this.config.defaultHeaders) {
+      this.config.defaultHeaders = {};
+    }
+    
+    if (tokenData.accessToken) {
+      this.config.defaultHeaders['Authorization'] = `Bearer ${tokenData.accessToken}`;
+    }
   }
 
   /**
    * Set authentication token for subsequent requests
    */
-  setAuthToken(token: string): void {
-    if (!this.config.defaultHeaders) {
-      this.config.defaultHeaders = {};
-    }
-    this.config.defaultHeaders['Authorization'] = `Bearer ${token}`;
+  setAuthToken(token: string, expiresIn?: number): void {
+    const expiresAt = expiresIn ? Date.now() + expiresIn * 1000 : undefined;
+    this.setAuthTokens({ accessToken: token, expiresAt });
   }
 
   /**
-   * Clear authentication token
+   * Clear authentication tokens
    */
   clearAuthToken(): void {
+    this.tokenData = null;
+    
     if (this.config.defaultHeaders && 'Authorization' in this.config.defaultHeaders) {
       delete this.config.defaultHeaders['Authorization'];
     }
+  }
+  
+  /**
+   * Check if the current token is expired
+   */
+  isTokenExpired(): boolean {
+    if (!this.tokenData || !this.tokenData.expiresAt) {
+      return false;
+    }
+    
+    // Consider token expired 30 seconds before actual expiry
+    return Date.now() > (this.tokenData.expiresAt - 30000);
+  }
+  
+  /**
+   * Refresh the auth token
+   */
+  async refreshToken(): Promise<TokenData | null> {
+    // If there's already a refresh in progress, return that promise
+    if (this.refreshPromise) {
+      return this.refreshPromise;
+    }
+    
+    // No refresh token or endpoint available
+    if (!this.tokenData?.refreshToken || !this.config.authRefreshEndpoint) {
+      return null;
+    }
+    
+    // Start a new refresh token request
+    this.refreshPromise = (async () => {
+      try {
+        const response = await this.request<{ accessToken: string; refreshToken?: string; expiresIn?: number }>(
+          'POST',
+          this.config.authRefreshEndpoint!,
+          { refreshToken: this.tokenData!.refreshToken },
+          { skipAuthRefresh: true }
+        );
+        
+        if (!response.success || !response.data) {
+          throw new Error(response.error?.message || 'Token refresh failed');
+        }
+        
+        const { accessToken, refreshToken, expiresIn } = response.data;
+        const expiresAt = expiresIn ? Date.now() + expiresIn * 1000 : undefined;
+        
+        const newTokenData = { 
+          accessToken, 
+          refreshToken: refreshToken || this.tokenData!.refreshToken,
+          expiresAt 
+        };
+        
+        this.setAuthTokens(newTokenData);
+        return newTokenData;
+      } catch (error) {
+        // Clear token data on refresh failure
+        this.clearAuthToken();
+        
+        // Call the auth error handler if provided
+        if (this.config.onAuthError) {
+          this.config.onAuthError(error);
+        }
+        
+        return null;
+      } finally {
+        this.refreshPromise = null;
+      }
+    })();
+    
+    return this.refreshPromise;
   }
 
   /**
@@ -148,6 +245,11 @@ export class ApiClient {
     data?: any,
     options?: FetchOptions
   ): Promise<ApiResponse<T>> {
+    // Check if token needs refresh before making the request, unless this is a refresh request itself
+    if (!options?.skipAuthRefresh && this.isTokenExpired() && this.tokenData?.refreshToken) {
+      await this.refreshToken();
+    }
+    
     const url = this.buildUrl(endpoint, options?.baseUrl);
     const headers = this.buildHeaders(options?.headers);
     const credentials = options?.credentials || (this.config.withCredentials ? 'include' : 'same-origin');
@@ -168,6 +270,26 @@ export class ApiClient {
       });
 
       clearTimeout(timeoutId);
+
+      // Handle authentication errors (401 Unauthorized)
+      if (response.status === 401 && !options?.skipAuthRefresh) {
+        // Try to refresh the token
+        const refreshedToken = await this.refreshToken();
+        
+        // If token refresh was successful, retry the original request
+        if (refreshedToken) {
+          return this.request(method, endpoint, data, options);
+        }
+        
+        // Token refresh failed, return the auth error
+        return {
+          success: false,
+          error: {
+            code: '401',
+            message: 'Authentication required',
+          },
+        };
+      }
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -245,4 +367,15 @@ export const defaultApiClient = new ApiClient({
     'Content-Type': 'application/json',
   },
   withCredentials: true,
+  authRefreshEndpoint: '/api/auth/refresh',
+  onAuthError: (error) => {
+    console.error('Authentication error:', error);
+    
+    // If window is defined (client-side), redirect to auth page
+    if (typeof window !== 'undefined') {
+      // Using window.location to do a hard redirect to the auth page
+      // Hard refresh clears any stale state
+      window.location.href = '/auth?error=session_expired';
+    }
+  },
 });
