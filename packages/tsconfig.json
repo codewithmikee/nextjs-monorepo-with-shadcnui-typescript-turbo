@@ -5,7 +5,8 @@
     "jsx": "react-jsx",
     "paths": {
       "@/*": ["./src/*"],
-      "@shared/*": ["../shared/src/*"]
+      "@shared/*": ["../shared/src/*"],
+      "react": ["./node_modules/@types/react"]
     },
     "outDir": "./dist"
   },

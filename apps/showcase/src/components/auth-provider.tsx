@@ -9,8 +9,8 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { SessionProvider, signOut } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 // No need to import API client when using events
-import { useRouter } from 'next/navigation';
-import { useToast } from '../hooks/use-toast';
+import { useRouter } from 'next/navigation'; 
+import { useToast } from '@packages/ui';
 
 // Create a client
 const createQueryClient = () => 
@@ -49,6 +49,7 @@ function AuthEventHandler() {
           title: 'Session Expired',
           description: 'Your session has expired. Please sign in again.',
           variant: 'destructive',
+          duration: 5000,
         });
         
         // Redirect to login page

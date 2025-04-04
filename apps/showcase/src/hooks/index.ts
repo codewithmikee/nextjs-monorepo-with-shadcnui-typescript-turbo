@@ -3,4 +3,4 @@
  * @description Main export file for hooks
  */
 
-export * from './use-toast';
+export * from './use-auth';

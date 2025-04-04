@@ -9,3 +9,5 @@ export * from './table';
 export * from './form';
 export * from './card';
 export * from './badge';
+export * from './toast';
+export * from './label';
