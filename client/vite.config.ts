@@ -8,21 +8,30 @@ const spaFallbackPlugin = () => {
   return {
     name: 'spa-fallback',
     configureServer(server) {
-      server.middlewares.use((req, res, next) => {
-        // Skip API requests
-        if (req.url.startsWith('/api')) {
-          return next();
-        }
-        
-        // Skip static file requests that have file extensions
-        if (req.url.match(/\.\w+$/)) {
-          return next();
-        }
-        
-        // For all other routes, serve index.html
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        return fs.createReadStream(path.resolve(__dirname, 'index.html')).pipe(res);
-      });
+      return () => {
+        server.middlewares.use((req, res, next) => {
+          // Skip API requests
+          if (req.url.startsWith('/api')) {
+            return next();
+          }
+          
+          // Skip static file requests that have file extensions
+          if (req.url.match(/\.\w+$/)) {
+            return next();
+          }
+          
+          // For all other routes, serve index.html
+          const indexPath = path.resolve(__dirname, 'index.html');
+          if (fs.existsSync(indexPath)) {
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            return fs.createReadStream(indexPath).pipe(res);
+          } else {
+            console.error('index.html not found at', indexPath);
+            res.writeHead(500, { 'Content-Type': 'text/plain' });
+            res.end('Internal Server Error: index.html not found');
+          }
+        });
+      };
     }
   };
 };

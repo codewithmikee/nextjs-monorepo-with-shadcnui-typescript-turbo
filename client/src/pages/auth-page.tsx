@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useAuth } from '@/hooks/use-auth';
+import { useLocation } from 'wouter';
 
 const loginSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters'),
@@ -23,6 +25,15 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
   const [isLoginForm, setIsLoginForm] = useState(true);
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
+
+  // Redirect to home if already logged in
+  useEffect(() => {
+    if (user) {
+      setLocation('/');
+    }
+  }, [user, setLocation]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900">
@@ -72,13 +83,13 @@ export default function AuthPage() {
 }
 
 function LoginForm({ onToggle }: { onToggle: () => void }) {
+  const { loginMutation } = useAuth();
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
   });
   
   const onSubmit = (data: LoginFormValues) => {
-    console.log('Login form submitted:', data);
-    // TODO: Implement login logic
+    loginMutation.mutate(data);
   };
   
   return (
@@ -115,9 +126,10 @@ function LoginForm({ onToggle }: { onToggle: () => void }) {
       
       <button
         type="submit"
-        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        disabled={loginMutation.isLoading}
+        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
       >
-        Login
+        {loginMutation.isLoading ? 'Logging in...' : 'Login'}
       </button>
       
       <div className="text-center mt-4">
@@ -137,13 +149,15 @@ function LoginForm({ onToggle }: { onToggle: () => void }) {
 }
 
 function RegisterForm({ onToggle }: { onToggle: () => void }) {
+  const { registerMutation } = useAuth();
   const { register, handleSubmit, formState: { errors } } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
   });
   
   const onSubmit = (data: RegisterFormValues) => {
-    console.log('Register form submitted:', data);
-    // TODO: Implement registration logic
+    // Omit confirmPassword before sending to API
+    const { confirmPassword, ...userData } = data;
+    registerMutation.mutate(userData);
   };
   
   return (
@@ -210,9 +224,10 @@ function RegisterForm({ onToggle }: { onToggle: () => void }) {
       
       <button
         type="submit"
-        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        disabled={registerMutation.isLoading}
+        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
       >
-        Register
+        {registerMutation.isLoading ? 'Registering...' : 'Register'}
       </button>
       
       <div className="text-center mt-4">
