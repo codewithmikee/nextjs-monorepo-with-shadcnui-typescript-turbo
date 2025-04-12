@@ -4,6 +4,7 @@
   "private": true,
   "license": "MIT",
   "scripts": {
+     "clean": "turbo clean && rm -rf node_modules && pnpm store prune",
     "build": "turbo build",
     "dev": "turbo dev",
     "lint": "turbo lint",

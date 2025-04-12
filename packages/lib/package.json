@@ -1,0 +1,30 @@
+{
+  "name": "@repo/lib",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "ui": "pnpm dlx shadcn@latest",
+    "lint": "eslint ."
+  },
+  "peerDependencies": {
+    "react": "^18"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:react18",
+    "typescript": "catalog:",
+    "@types/react-dom": "catalog:react18"
+  },
+  "dependencies": {
+    "@repo/types": "workspace:*",
+    "next-auth": "catalog:",
+    "react": "catalog:react18",
+    "react-dom": "catalog:react18",
+    "next": "catalog:"
+  },
+  "exports": {
+    "./auth/*": "./src/auth/*.ts"
+  }
+}

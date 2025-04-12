@@ -1,0 +1,16 @@
+{
+  "name": "@repo/types",
+  "version": "1.0.0",
+  "dependencies": {
+
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "catalog:"
+  },
+  "exports": {
+    "./enums/*": "./src/enums/*.ts",
+    "./*": "./src/*.ts"
+  }
+}

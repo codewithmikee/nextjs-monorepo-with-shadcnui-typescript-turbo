@@ -21,6 +21,8 @@
     "typescript": "catalog:"
   },
   "dependencies": {
+    "@repo/lib": "workspace:*",
+    "@repo/types": "workspace:*",
     "@hookform/resolvers": "^5.0.1",
     "@radix-ui/react-accordion": "^1.2.4",
     "@radix-ui/react-alert-dialog": "^1.1.7",
@@ -64,7 +66,8 @@
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^1.1.2",
-    "zod": "^3.24.2"
+    "zod": "^3.24.2",
+    "next-auth": "catalog:"
   },
   "exports": {
     "./globals.css": "./src/globals.css",
@@ -75,6 +78,7 @@
       "./src/hooks/*.ts",
       "./src/hooks/*.tsx"
     ],
+
     "./components/*": "./src/components/*.tsx"
   }
 }

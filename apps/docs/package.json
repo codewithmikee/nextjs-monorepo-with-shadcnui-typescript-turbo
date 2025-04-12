@@ -10,7 +10,10 @@
   },
   "dependencies": {
     "@repo/ui": "workspace:*",
+    "@repo/lib": "workspace:*",
+    "@repo/types": "workspace:*",
     "next": "14.2.8",
+    "next-auth": "^4.24.6",
     "react": "catalog:react18",
     "react-dom": "catalog:react18"
   },
