@@ -8,11 +8,36 @@ export const credentialsProvider = CredentialsProvider({
     password: { label: "Password", type: "password" },
   },
   async authorize(credentials) {
-    const res = await fetch(`${process.env.API_URL}/auth/login`, {
-      method: "POST",
-      body: JSON.stringify(credentials),
-    });
-    const user: ILoginUser = await res.json();
-    return user || null;
+    if (!credentials?.username || !credentials?.password) {
+      throw new Error("Please enter both username and password");
+    }
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(credentials),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Invalid credentials");
+      }
+
+      const user: ILoginUser = await res.json();
+
+      if (!user) {
+        throw new Error("No user found");
+      }
+
+      return user;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      }
+      throw new Error("Something went wrong");
+    }
   },
 });

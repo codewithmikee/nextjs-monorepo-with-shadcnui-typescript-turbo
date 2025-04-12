@@ -3,7 +3,10 @@ import { credentialsProvider } from "./providers/credentials";
 
 export const authOptions: NextAuthOptions = {
   providers: [credentialsProvider],
-  session: { strategy: "jwt" },
+  session: {
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
@@ -17,7 +20,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       session.user = {
         ...token.user,
-        userName: token.userName, // Include userName
+        userName: token.userName,
         email: token.email,
         role: token.role,
         accessToken: token.accessToken,
@@ -27,6 +30,11 @@ export const authOptions: NextAuthOptions = {
       return session;
     }
   },
+  pages: {
+    signIn: "/auth/signin",
+  },
+  secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === "development",
 };
 
-export default NextAuth(authOptions);
+export default authOptions;
