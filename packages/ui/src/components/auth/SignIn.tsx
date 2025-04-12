@@ -10,9 +10,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useState } from "react";
 import { Alert, AlertDescription } from "../ui/alert";
 import { AlertCircle } from "lucide-react";
-
+import { useRouter } from "next/navigation";
 const signInSchema = z.object({
-  username: z.string().min(1, { message: "Username is required" }),
+  userName: z.string().min(1, { message: "Username is required" }),
   password: z.string().min(6, { message: "Password must be at least 6 characters" }),
 });
 
@@ -22,10 +22,12 @@ export const SignIn = () => {
   const [serverError, setServerError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const router = useRouter();
+
   const form = useForm<SignInFormValues>({
     resolver: zodResolver(signInSchema),
     defaultValues: {
-      username: "",
+      userName: "",
       password: "",
     },
     mode: "onChange",
@@ -35,8 +37,8 @@ export const SignIn = () => {
     try {
       const result = await signIn("credentials", {
         redirect: false,
-        callbackUrl: "/dashboard",
-        username: data.username,
+        callbackUrl:  "/",
+        userName: data.userName,
         password: data.password
       });
 
@@ -74,7 +76,7 @@ export const SignIn = () => {
 
             <FormField
               control={form.control}
-              name="username"
+              name="userName"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Username</FormLabel>
@@ -83,7 +85,7 @@ export const SignIn = () => {
                       placeholder="projectmayhem@fc.com"
                       {...field}
                       disabled={isLoading}
-                      onBlur={() => form.trigger("username")}
+                      onBlur={() => form.trigger("userName")}
                     />
                   </FormControl>
                   <FormMessage />
