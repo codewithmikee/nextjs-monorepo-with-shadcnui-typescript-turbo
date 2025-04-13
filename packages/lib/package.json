@@ -14,15 +14,16 @@
     "@repo/typescript-config": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "catalog:react18",
-    "typescript": "catalog:",
-    "@types/react-dom": "catalog:react18"
+    "@types/react-dom": "catalog:react18",
+    "typescript": "catalog:"
   },
   "dependencies": {
     "@repo/types": "workspace:*",
+    "axios": "^1.8.4",
+    "next": "catalog:",
     "next-auth": "catalog:",
     "react": "catalog:react18",
-    "react-dom": "catalog:react18",
-    "next": "catalog:"
+    "react-dom": "catalog:react18"
   },
   "exports": {
     "./auth/*": "./src/auth/*.ts"
