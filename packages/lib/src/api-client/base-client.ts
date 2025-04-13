@@ -1,4 +1,3 @@
-// packages/lib/src/api-client/base-client.ts
 import axios, {
   AxiosError,
   AxiosInstance,
@@ -7,11 +6,15 @@ import axios, {
 } from "axios";
 import { getSession, signOut } from "next-auth/react";
 import { ApiResponse } from "./types";
-
-// packages/lib/src/api-client/server-client.ts
-import { getServerSession } from 'next-auth';
+import { getServerSession } from "next-auth";
 import authOptions from "../auth/auth.config";
+import { URLUtils, QueryParams, ArrayFormat } from "./url-utils";
+
 type AuthTokenProvider = () => Promise<string | null>;
+type RequestConfig = AxiosRequestConfig & {
+  queryParams?: QueryParams;
+  arrayFormat?: ArrayFormat;
+};
 
 export abstract class BaseApiClient {
   protected readonly instance: AxiosInstance;
@@ -24,15 +27,14 @@ export abstract class BaseApiClient {
       basePrefix?: string;
       isProtected?: boolean;
       isServer?: boolean;
-      baseURL?: string;
-    } = {}
+    } = {},
   ) {
-    const baseURL = config.baseURL || this.getPrefixedBaseUrl(config.basePrefix);
+    const baseURL = this.getPrefixedBaseUrl(config.basePrefix || "");
     this.baseURL = baseURL;
     this.isProtected = config.isProtected || false;
 
     this.instance = axios.create({
-      baseURL,
+      baseURL: this.baseURL,
       timeout: 10000,
       headers: {
         "Content-Type": "application/json",
@@ -67,23 +69,15 @@ export abstract class BaseApiClient {
   }
 
   private getBaseUrl = () => {
-    let url = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
-    // handle ends with slash
-    return this.makeSureUrlEndsWithSlash(url);
+    const url = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+    return url;
   };
 
   private getPrefixedBaseUrl = (prefix?: string) => {
     const baseUrl = this.getBaseUrl();
     if (!prefix) return baseUrl;
-
-    return this.makeSureUrlEndsWithSlash(
-      `${baseUrl}${prefix.startsWith("/") ? prefix.slice(1) : prefix}`,
-    );
+    return `${baseUrl}/${prefix}`.replace(/\/+/g, "/");
   };
-
-  private makeSureUrlEndsWithSlash(url: string) {
-    return url.endsWith("/") ? url : `${url}/`;
-  }
 
   private handleResponse = (response: AxiosResponse) => {
     return response;
@@ -91,6 +85,12 @@ export abstract class BaseApiClient {
 
   // packages/lib/src/api-client/base-client.ts
   private handleError = async (error: AxiosError): Promise<never> => {
+
+    const status = error.response?.status;
+    const data = error.response?.data;
+    console.info("Error to handle on handleError", {
+      status, data
+    });
     // Type-safe error details extraction
     const getErrorDetails = (
       data: unknown,
@@ -119,20 +119,39 @@ export abstract class BaseApiClient {
       // Handle token expiration
       if (status === 401 && this.isProtected) {
         try {
-          // Add token refresh logic here if needed
           const originalRequest = error.config!;
           return this.instance(originalRequest);
         } catch (refreshError) {
           await signOut({ redirect: false });
-          window.location.href = "/auth/signin";
+
+          if (typeof window !== "undefined") {
+            window.location.href = "/auth/signin";
+          }
         }
       }
 
-      // Handle account blocked
-      if (status === 403) {
+      if (status === 423) {
         await signOut({ redirect: false });
-        window.location.href = "/auth/blocked";
+        if (typeof window !== "undefined") {
+          window.location.href = "/auth/blocked";
+        }
       }
+    }
+
+
+
+    // Wrap plain error payload into expected format
+    if (
+      data &&
+      typeof data === "object" &&
+      "error" in data &&
+      typeof data.error === "string"
+    ) {
+      formattedError.error = {
+        code: error.code || "BACKEND_ERROR",
+        message: data.error,
+        details: data,
+      };
     }
 
     return Promise.reject(formattedError);
@@ -143,8 +162,7 @@ export abstract class BaseApiClient {
     return session?.accessToken || null;
   };
 
-
-  protected async request<T>(config: AxiosRequestConfig) {
+  protected async request<T>(config: RequestConfig) {
     try {
       if (this.isProtected) {
         const token = await this.tokenProvider();
@@ -154,20 +172,112 @@ export abstract class BaseApiClient {
         };
       }
 
-      const response = await this.instance.request<ApiResponse<T>>(config);
-      return response.data;
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        throw error.response?.data;
+      // let path =
+      let path = config.url || "";
+      path = path.startsWith("/") ? path.slice(1) : path;
+
+      // Handle query parameters
+      const url = config.url || "";
+
+      const existingParams = new URLSearchParams();
+
+      // Parse existing query params from URL
+      if (url.includes("?")) {
+        const [path, query] = url.split("?");
+        config.url = path;
+        new URLSearchParams(query).forEach((value, key) => {
+          existingParams.append(key, value);
+        });
       }
-      throw error;
+
+      // Merge with new query params
+      if (config.queryParams) {
+        const newParams = new URLSearchParams(
+          URLUtils.serializeQueryParams(config.queryParams, config.arrayFormat),
+        );
+
+        // In BaseApiClient.request()
+        newParams.forEach((value, key) => {
+          existingParams.append(key, value); // Append instead of set
+        });
+      }
+
+      // Rebuild URL with merged params
+      const queryString = existingParams.toString();
+      config.url = queryString ? `${config.url}?${queryString}` : config.url;
+
+      console.info("Config url", {
+        base: this.baseURL,
+        config,
+      });
+
+      const response = await this.instance.request<T>(config);
+
+      // console.info("REsponse on request", response);
+
+      const data = response.data;
+      return {
+        data,
+        success: true
+      };
+    } catch (error) {
+      console.error("Error on request", error);
+
+      if (
+        error &&
+        typeof error === "object" &&
+        "success" in error &&
+        "error" in error
+      ) {
+        return error as ApiResponse<T>;
+      }
+
+      if (axios.isAxiosError(error)) {
+        const response = error.response;
+
+        // Known API error format
+        if (response?.data?.success === false && response?.data?.error) {
+          return response.data as ApiResponse<T>;
+        }
+
+        // Zod validation error
+        if (response?.status === 422 && typeof response?.data === "object") {
+          return {
+            success: false,
+            error: {
+              code: "VALIDATION_ERROR",
+              message: "Validation failed",
+              details: response.data,
+            },
+          };
+        }
+
+        // Generic fallback
+        return {
+          success: false,
+          error: {
+            code: error.code || "UNKNOWN_AXIOS_ERROR",
+            message: error.message,
+            details: response?.data,
+          },
+        };
+      }
+
+      // Non-Axios error fallback
+      return {
+        success: false,
+        error: {
+          code: "UNEXPECTED_ERROR",
+          message: error instanceof Error ? error.message : "Unexpected error",
+        },
+      };
     }
   }
 
   // Define ALL common methods in base class
   async get<T>(
     endpoint: string,
-    config?: AxiosRequestConfig,
+    config?: RequestConfig,
   ): Promise<ApiResponse<T>> {
     return this.request<T>({
       method: "GET",
@@ -179,7 +289,7 @@ export abstract class BaseApiClient {
   async post<T>(
     endpoint: string,
     data?: unknown,
-    config?: AxiosRequestConfig,
+    config?: RequestConfig,
   ): Promise<ApiResponse<T>> {
     return this.request<T>({
       method: "POST",
@@ -192,7 +302,7 @@ export abstract class BaseApiClient {
   async put<T>(
     endpoint: string,
     data?: unknown,
-    config?: AxiosRequestConfig,
+    config?: RequestConfig,
   ): Promise<ApiResponse<T>> {
     return this.request<T>({
       method: "PUT",
@@ -204,7 +314,7 @@ export abstract class BaseApiClient {
 
   async delete<T>(
     endpoint: string,
-    config?: AxiosRequestConfig,
+    config?: RequestConfig,
   ): Promise<ApiResponse<T>> {
     return this.request<T>({
       method: "DELETE",
@@ -213,5 +323,3 @@ export abstract class BaseApiClient {
     });
   }
 }
-
-

@@ -1,3 +1,4 @@
+import { authServerSideApi } from "../../api-client/api-clients";
 import { ILoginUser } from "@repo/types/login-type";
 import CredentialsProvider from "next-auth/providers/credentials";
 
@@ -13,26 +14,19 @@ export const credentialsProvider = CredentialsProvider({
     }
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(credentials),
+      const response = await authServerSideApi.post<ILoginUser>('login', {
+        userName: credentials.userName,
+        password: credentials.password,
       });
 
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Invalid credentials");
+
+      console.log("Response on Credientials", response)
+
+      if (!response.data) {
+        throw new Error(response.error?.message || "Invalid credentials");
       }
 
-      const user: ILoginUser = await res.json();
-
-      if (!user) {
-        throw new Error("No user found");
-      }
-
-      return user;
+      return response.data;
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(error.message);

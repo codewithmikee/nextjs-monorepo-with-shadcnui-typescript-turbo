@@ -35,6 +35,8 @@ export const SignIn = () => {
 
   const onSubmit = async (data: SignInFormValues) => {
     try {
+      setIsLoading(true)
+      setServerError(null)
       const result = await signIn("credentials", {
         redirect: false,
         callbackUrl:  "/",
@@ -50,8 +52,11 @@ export const SignIn = () => {
       } else if (result?.url) {
         window.location.href = result.url;
       }
+      setIsLoading(false)
     } catch (error) {
       setServerError("Authentication failed");
+      setIsLoading(false)
+
     }
   };
 
@@ -82,7 +87,7 @@ export const SignIn = () => {
                   <FormLabel>Username</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="projectmayhem@fc.com"
+                      placeholder="myusername"
                       {...field}
                       disabled={isLoading}
                       onBlur={() => form.trigger("userName")}
@@ -119,7 +124,7 @@ export const SignIn = () => {
               size={'lg'}
               disabled={isLoading}
             >
-              {isLoading ? "Signing in..." : "Sign In &rarr;"}
+              {isLoading ? "Signing in..." : "Sign In "} &rarr;
             </Button>
 
             <div className="bg-gradient-to-r from-transparent via-neutral-300 dark:via-neutral-700 to-transparent my-8 h-[1px] w-full" />
